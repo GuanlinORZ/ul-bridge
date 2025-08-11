@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ main ]   # 你主分支不是 main 就改成实际分支
+    branches: [ main ]   # 你的默认分支不是 main 就改这里
   workflow_dispatch:
 
 permissions:
@@ -21,10 +21,18 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      # 如果只是纯静态文件，直接把根目录打包上传
-      - uses: actions/upload-pages-artifact@v3
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      # 你的站点是纯静态，就把仓库根目录打包
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
           path: .
-      - id: deployment
+
+      - name: Deploy to GitHub Pages
+        id: deployment
         uses: actions/deploy-pages@v4
