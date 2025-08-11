@@ -6,16 +6,22 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write   # 必须：允许工作流写入 gh-pages 分支
+  contents: write   # 必须：允许写 gh-pages 分支
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: .          # 你的 index.html 在仓库根目录
+          publish_dir: .
           publish_branch: gh-pages
+          force_orphan: true
+          user_name: github-actions[bot]
+          user_email: 41898282+github-actions[bot]@users.noreply.github.com
