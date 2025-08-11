@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>返回 App</title>
+  <style>
+    :root { --bd:#e5e7eb; --fg:#111827; --mut:#6b7280; --ok:#059669; --warn:#b45309; }
+    body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto; padding:20px; color:var(--fg); }
+    .row { margin:8px 0; }
+    button { padding:10px 14px; border-radius:10px; border:1px solid var(--bd); background:#fff; cursor:pointer; }
+    #log { white-space:pre-wrap; border:1px dashed var(--bd); padding:12px; border-radius:12px; max-height:48vh; overflow:auto; font-size:12px; background:#fafafa; }
+    code { background:#f3f4f6; padding:2px 6px; border-radius:6px; }
+  </style>
+</head>
+<body>
+  <h2>正在为你返回 App…</h2>
+  <div class="row">如果没有自动跳转，请点击下方按钮。</div>
+  <div class="row">
+    <button id="open">立刻返回 App</button>
+    <button id="copyLog" style="margin-left:8px;">复制日志</button>
+  </div>
+
+  <div class="row" style="color:var(--mut);">当前参数：<code id="q"></code></div>
+  <div class="row" style="color:var(--mut);">User-Agent：<code id="ua"></code></div>
+  <div class="row" style="color:var(--mut);">最终回跳 URL（外层）：<code id="final"></code></div>
+
+  <h3 style="margin-top:16px;">运行日志</h3>
+  <div id="log"></div>
+
+  <script>
+    // ====== 日志函数 ======
+    const logBuf = [];
+    function log(msg, kind='info') {
+      const time = new Date().toLocaleTimeString();
+      const line = `[${time}] ${msg}`;
+      logBuf.push(line);
+
+      const div = document.getElementById('log');
+      const lineEl = document.createElement('div');
+      lineEl.textContent = line;
+      if (kind === 'warn') lineEl.style.color = '#b45309';
+      if (kind === 'error') lineEl.style.color = '#b91c1c';
+      if (kind === 'ok') lineEl.style.color = '#059669';
+      div.appendChild(lineEl);
+      div.scrollTop = div.scrollHeight;
+
+      console[kind==='error' ? 'error' : kind==='warn' ? 'warn' : 'log'](line);
+    }
+
+    // 捕获异常
+    window.addEventListener('error', e=>log(`JS Error: ${e.message}`, 'error'));
+    window.addEventListener('unhandledrejection', e=>log(`Promise Rejection: ${e.reason}`, 'error'));
+
+    // ====== 参数展示 ======
+    const params = new URLSearchParams(location.search);
+    document.getElementById('q').textContent = params.toString() || '(无)';
+    document.getElementById('ua').textContent = navigator.userAgent;
+
+    // ====== 回跳 URL ======
+    const baseUL = 'https://ace.tb.cn/t?smburl=tbopen%3A%2F%2Fm.taobao.com%2Ftbopen%2Findex.html%3Fh5Url%3Dhttps%253A%252F%252Fpages.tmall.com%252Fwow%252Fz%252Fhdwk%252Ffarm-tubes%252Fbbf-9f02hw5fej%253FforbidRefineType%253DgoOut%2526shareKey%253DRw8Gb5AZ0Cv7nk7KAdt1zOeMR%2526disableNav%253DYES%2526sourceType%253Dother%2526suid%253D007c076e-57e8-4e7d-9a89-3ba9c2cfb168%2526ut_sk%253D1.utdid_21646297_1753713476768.wxfriend-taopassword.farmkankanjia%2526un%253D965b6eb353022dcc0fa7d045a29c7155%2526share_crt_v%253D1%2526un_site%253D0%2526spm%253Da2159r.13376460.0.0%2526sp_tk%253DUGg1MDRmVDNnZUg%25253D%2526cpp%253D1%2526shareurl%253Dtrue%2526short_name%253Dh.hmwXAHj%26action%3Dali.open.nav%26module%3Dh5%26bootImage%3D0%26slk_gid%3Dgid_er_sidebar_0%26afcPromotionOpen%3Dfalse%26bc_fl_src%3Dh5_huanduan%26source%3Dslk_dp';
+    const finalUL = baseUL + (params.toString() ? '&' + params.toString() : '');
+    document.getElementById('final').textContent = finalUL;
+
+    // ====== 跳转探测 ======
+    let leftPage = false;
+    let firedAt = performance.now();
+
+    document.addEventListener('visibilitychange', () => {
+      log(`visibilitychange -> ${document.visibilityState}`);
+      if (document.visibilityState === 'hidden') {
+        leftPage = true;
+        log('检测到页面进入后台，推测已切到 App','ok');
+      }
+      if (document.visibilityState === 'visible' && leftPage) {
+        log('从 App 返回到 Safari','warn');
+      }
+    });
+
+    window.addEventListener('pagehide', () => {
+      leftPage = true;
+      log('pagehide 触发','ok');
+    });
+    window.addEventListener('pageshow', () => log('pageshow 触发'));
+    window.addEventListener('focus', () => log('window focus'));
+    window.addEventListener('blur', () => log('window blur'));
+    window.addEventListener('beforeunload', () => log('beforeunload 触发'));
+
+    function attemptOpen(tag) {
+      firedAt = performance.now();
+      log(`发起跳转（${tag}） -> ${finalUL}`);
+      location.href = finalUL;
+
+      setTimeout(() => {
+        if (!leftPage) {
+          const cost = Math.round(performance.now() - firedAt);
+          log(`未检测到跳转（${cost}ms），可能被拦截或无效。请点“立刻返回 App”。`,'warn');
+        }
+      }, 1200);
+    }
+
+    // 自动尝试
+    setTimeout(() => attemptOpen('auto'), 300);
+
+    // 手动兜底
+    document.getElementById('open').addEventListener('click', () => attemptOpen('click'));
+
+    // 复制日志
+    document.getElementById('copyLog').addEventListener('click', async () => {
+      const text = logBuf.join('\n');
+      try {
+        await navigator.clipboard.writeText(text);
+        log('日志已复制到剪贴板','ok');
+      } catch (e) {
+        log('复制失败，请手动全选复制','error');
+      }
+    });
+
+    // 首屏
+    log('页面加载完成');
+    log(`外层回跳 URL：${finalUL}`);
+  </script>
+</body>
+</html>
