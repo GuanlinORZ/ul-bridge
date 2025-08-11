@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ main ]   # 你的默认分支不是 main 就改这里
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
@@ -26,12 +26,13 @@ jobs:
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
+        with:
+          enablement: true   # 关键：自动启用并配置 Pages（使用 Actions 构建）
 
-      # 你的站点是纯静态，就把仓库根目录打包
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: .            # 站点根 = 仓库根，确保有 index.html
 
       - name: Deploy to GitHub Pages
         id: deployment
