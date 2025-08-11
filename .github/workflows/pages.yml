@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Deploy static site to gh-pages
 
 on:
   push:
@@ -6,34 +6,16 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: true
+  contents: write   # 必须：允许工作流写入 gh-pages 分支
 
 jobs:
   deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
+      - uses: actions/checkout@v4
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          enablement: true   # 关键：自动启用并配置 Pages（使用 Actions 构建）
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: .            # 站点根 = 仓库根，确保有 index.html
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .          # 你的 index.html 在仓库根目录
+          publish_branch: gh-pages
